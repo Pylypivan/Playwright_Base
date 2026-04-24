@@ -1,5 +1,5 @@
 name: Run Suite
-run-name: "Run Suite ${{ inputs.suite }} [env: ${{ inputs.environment }}]"
+run-name: "Run Suite | regression:${{ inputs.regression }} sanity:${{ inputs.sanity }} budget:${{ inputs.budget }} [env: ${{ inputs.environment }}]"
 
 on:
   workflow_dispatch:
@@ -18,27 +18,47 @@ on:
           - staging
           - production
           - dev
-      suite:
-        description: Test suite to run
-        required: true
-        type: choice
-        options:
-          - regression
-          - sanity
-          - budget
+      regression:
+        description: Regression
+        type: boolean
+        default: false
+      sanity:
+        description: Sanity
+        type: boolean
+        default: false
+      budget:
+        description: Budget
+        type: boolean
+        default: false
 
 jobs:
-  run:
-    name: ${{ inputs.suite }}
+  regression:
+    if: ${{ inputs.regression }}
     uses: ./.github/workflows/_suite.yml
     with:
-      suite: ${{ inputs.suite }}
+      suite: regression
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}
+
+  sanity:
+    if: ${{ inputs.sanity }}
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: sanity
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}
+
+  budget:
+    if: ${{ inputs.budget }}
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: budget
       branch: ${{ inputs.branch }}
       environment: ${{ inputs.environment }}
 
   publish:
-    name: Publish Report
-    needs: run
+    name: Publish Reports
+    needs: [regression, sanity, budget]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -48,11 +68,55 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Download report
+      - name: Download regression report
+        if: ${{ inputs.regression }}
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.suite }}-report
-          path: ./site
+          name: regression-report
+          path: ./site/regression
+
+      - name: Download sanity report
+        if: ${{ inputs.sanity }}
+        uses: actions/download-artifact@v4
+        with:
+          name: sanity-report
+          path: ./site/sanity
+
+      - name: Download budget report
+        if: ${{ inputs.budget }}
+        uses: actions/download-artifact@v4
+        with:
+          name: budget-report
+          path: ./site/budget
+
+      - name: Create index page
+        run: |
+          mkdir -p ./site
+          LINKS=""
+          [ "${{ inputs.regression }}" = "true" ] && LINKS="$LINKS<li><a href='regression/index.html'>Regression</a></li>"
+          [ "${{ inputs.sanity }}"    = "true" ] && LINKS="$LINKS<li><a href='sanity/index.html'>Sanity</a></li>"
+          [ "${{ inputs.budget }}"    = "true" ] && LINKS="$LINKS<li><a href='budget/index.html'>Budget</a></li>"
+          cat > ./site/index.html << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <title>Test Reports</title>
+            <style>
+              body { font-family: sans-serif; max-width: 480px; margin: 60px auto; }
+              h1 { font-size: 1.4rem; margin-bottom: 24px; }
+              ul { list-style: none; padding: 0; }
+              li { margin: 12px 0; }
+              a { font-size: 1rem; color: #0969da; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>Test Reports</h1>
+            <ul>$LINKS</ul>
+          </body>
+          </html>
+          EOF
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
