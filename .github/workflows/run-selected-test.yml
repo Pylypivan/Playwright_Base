@@ -1,5 +1,5 @@
 name: Run Selected Test
-run-name: "Run Selected Test [env: ${{ inputs.environment }}]"
+run-name: "Run Selected Test ${{ inputs.tag }} [env: ${{ inputs.environment }}]"
 
 on:
   workflow_dispatch:
@@ -23,14 +23,49 @@ on:
         required: true
         type: string
       tag:
-        description: "Tag to grep (e.g. @sanity) — optional"
-        required: false
+        description: "Tag to grep (e.g. @sanity)"
+        required: true
         type: string
+      shards:
+        description: Number of machines
+        required: true
+        type: choice
+        default: '1'
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+          - '7'
+          - '8'
+          - '9'
+          - '10'
+          - '11'
+          - '12'
+          - '13'
+          - '14'
+          - '15'
 
 jobs:
-  run:
-    name: Run Selected Test
+  prepare:
+    name: Prepare Matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: echo "matrix=$(seq 1 ${{ inputs.shards }} | jq -sc '.')" >> $GITHUB_OUTPUT
+
+  run:
+    name: ${{ inputs.tag }}[${{ matrix.shard }}]
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,20 +87,48 @@ jobs:
 
       - name: Run selected tests
         run: |
-          CMD="npx playwright test"
-          if [ -n "${{ inputs.test }}" ]; then
-            CMD="$CMD ${{ inputs.test }}"
-          fi
-          if [ -n "${{ inputs.tag }}" ]; then
-            CMD="$CMD --grep ${{ inputs.tag }}"
-          fi
-          $CMD --reporter=html,list
+          npx playwright test ${{ inputs.test }} --grep ${{ inputs.tag }} --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=blob,list
         env:
           TEST_ENV: ${{ inputs.environment }}
 
-      - name: Upload report
+      - name: Upload blob report
         uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: selected-blob-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+
+  merge:
+    name: Merge Report
+    needs: run
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: selected-blob-*
+          path: all-blobs
+          merge-multiple: true
+
+      - name: Merge reports
+        run: npx playwright merge-reports --reporter=html ./all-blobs
+
+      - name: Upload merged report
+        uses: actions/upload-artifact@v4
         with:
           name: selected-test-report
           path: playwright-report/
