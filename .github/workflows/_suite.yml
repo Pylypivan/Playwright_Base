@@ -15,7 +15,7 @@ on:
 
 jobs:
   run:
-    name: ${{ inputs.suite }} / Shard ${{ matrix.shard }}/5
+    name: Shard ${{ matrix.shard }}/5
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

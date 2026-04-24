@@ -28,6 +28,7 @@ on:
 
 jobs:
   run:
+    name: ${{ inputs.suite }}
     uses: ./.github/workflows/_suite.yml
     with:
       suite: ${{ inputs.suite }}
