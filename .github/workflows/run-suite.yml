@@ -1,0 +1,35 @@
+name: Run Suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests on
+        required: true
+        default: main
+        type: string
+      environment:
+        description: Environment to run tests against
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+          - dev
+      suite:
+        description: Test suite to run
+        required: true
+        type: choice
+        options:
+          - regression
+          - sanity
+          - budget
+
+jobs:
+  run:
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: ${{ inputs.suite }}
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}

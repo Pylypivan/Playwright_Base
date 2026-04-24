@@ -1,0 +1,41 @@
+name: Run All Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to run tests on
+        required: true
+        default: main
+        type: string
+      environment:
+        description: Environment to run tests against
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+          - dev
+
+jobs:
+  regression:
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: regression
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}
+
+  sanity:
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: sanity
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}
+
+  budget:
+    uses: ./.github/workflows/_suite.yml
+    with:
+      suite: budget
+      branch: ${{ inputs.branch }}
+      environment: ${{ inputs.environment }}
