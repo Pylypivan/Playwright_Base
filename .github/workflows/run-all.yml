@@ -43,7 +43,7 @@ jobs:
   publish:
     name: Publish Reports
     needs: [regression, sanity, budget]
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       pages: write

@@ -56,7 +56,7 @@ jobs:
   merge:
     name: Merge ${{ inputs.suite }} Report
     needs: run
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

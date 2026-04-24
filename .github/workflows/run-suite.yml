@@ -39,7 +39,7 @@ jobs:
   publish:
     name: Publish Report
     needs: run
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
