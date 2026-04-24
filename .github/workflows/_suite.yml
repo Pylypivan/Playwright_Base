@@ -34,11 +34,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-
-      - name: Create auth directory
-        run: mkdir -p playwright/.auth
 
       - name: Run ${{ inputs.suite }} tests
         run: npx playwright test --grep @${{ inputs.suite }} --shard=${{ matrix.shard }}/5 --reporter=blob,list
