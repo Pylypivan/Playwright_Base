@@ -13,6 +13,7 @@ import { defineConfig, devices } from '@playwright/test'
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  globalSetup: './tests/global.setup.js',
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -34,16 +35,11 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.js/,
-    },
-    {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/standardUser.json',
       },
-      dependencies: ['setup'],
     },
 
     // {
