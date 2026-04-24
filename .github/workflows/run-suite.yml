@@ -35,3 +35,30 @@ jobs:
       suite: ${{ inputs.suite }}
       branch: ${{ inputs.branch }}
       environment: ${{ inputs.environment }}
+
+  publish:
+    name: Publish Report
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Download report
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.suite }}-report
+          path: ./site
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
