@@ -54,9 +54,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
+      test_path: ${{ steps.set.outputs.test_path }}
     steps:
       - id: set
-        run: echo "matrix=$(seq 1 ${{ inputs.shards }} | jq -sc '.')" >> $GITHUB_OUTPUT
+        run: |
+          echo "matrix=$(seq 1 ${{ inputs.shards }} | jq -sc '.')" >> $GITHUB_OUTPUT
+          echo "test_path=$(echo '${{ inputs.test }}' | tr '\\' '/')" >> $GITHUB_OUTPUT
 
   run:
     name: ${{ inputs.tag }}[${{ matrix.shard }}]
@@ -87,7 +90,7 @@ jobs:
 
       - name: Run selected tests
         run: |
-          npx playwright test ${{ inputs.test }} --grep ${{ inputs.tag }} --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=blob,list
+          npx playwright test ${{ needs.prepare.outputs.test_path }} --grep ${{ inputs.tag }} --shard=${{ matrix.shard }}/${{ inputs.shards }} --reporter=blob,list
         env:
           TEST_ENV: ${{ inputs.environment }}
 
@@ -133,3 +136,30 @@ jobs:
           name: selected-test-report
           path: playwright-report/
           retention-days: 7
+
+  publish:
+    name: Publish Report
+    needs: merge
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Download report
+        uses: actions/download-artifact@v4
+        with:
+          name: selected-test-report
+          path: ./site
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
