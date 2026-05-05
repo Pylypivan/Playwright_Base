@@ -9,6 +9,7 @@ export class BasePage extends BaseElements {
 
   async navigate(url) {
     await this.page.goto(url)
+    await this.waitForLoad()
   }
 
   async getTitle() {

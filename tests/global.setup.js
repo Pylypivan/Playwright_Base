@@ -1,11 +1,10 @@
 import { request } from '@playwright/test'
 import { ROLES } from '../utils/roles.js'
+import { env } from '../config/index.js'
 import fs from 'fs'
 
-const BASE_URL = 'https://www.saucedemo.com'
-
 async function injectSessionCookie(username, storageStatePath) {
-  const requestContext = await request.newContext({ baseURL: BASE_URL })
+  const requestContext = await request.newContext({ baseURL: env.baseURL })
   await requestContext.get('/')
   await requestContext.storageState({ path: storageStatePath })
   await requestContext.dispose()

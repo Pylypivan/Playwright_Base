@@ -1,4 +1,5 @@
 import { BasePage } from '../BasePage.js'
+import { URLS } from '../../utils/urls.js'
 
 export class LoginPage extends BasePage {
   /** @param {import('@playwright/test').Page} page */
@@ -6,8 +7,8 @@ export class LoginPage extends BasePage {
     super(page)
   }
 
-  url = 'https://www.saucedemo.com/'
-  inventoryUrl = "https://www.saucedemo.com/inventory.html"
+  url = URLS.HOME
+  inventoryUrl = URLS.INVENTORY
   loginFieldName = '[data-test="username"]'
   passwordField = '[data-test="password"]'
   loginBtn = '#login-button'
@@ -15,12 +16,10 @@ export class LoginPage extends BasePage {
 
   async open() {
     await this.navigate(this.url)
-    await this.waitForLoad()
   }
 
   async openInventory() {
     await this.navigate(this.inventoryUrl)
-    await this.waitForLoad()
   }
 
   async login(username, password) {
